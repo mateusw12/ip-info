@@ -3,26 +3,17 @@ import { Card, Input, Button, Table, Typography, message } from "antd";
 import { SearchOutlined, DeleteOutlined } from "@ant-design/icons";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { ipInfoDetail } from "./interface";
 
 const MapWithMarker = dynamic(() => import("./../map"), { ssr: false });
 
 const { Title } = Typography;
 const STORAGE_KEY = "ipinfo_ip_history_v1";
 
-interface IpInfo {
-  ip: string;
-  city?: string;
-  region?: string;
-  country?: string;
-  loc?: string;
-  org?: string;
-  postal?: string;
-  timezone?: string;
-}
 
 export const SearchIP: React.FC = () => {
   const [ip, setIp] = useState("");
-  const [history, setHistory] = useState<IpInfo[]>([]);
+  const [history, setHistory] = useState<ipInfoDetail[]>([]);
 
   // Carrega histórico
   useEffect(() => {
@@ -30,7 +21,7 @@ export const SearchIP: React.FC = () => {
     if (saved) setHistory(JSON.parse(saved));
   }, []);
 
-  const saveHistory = (data: IpInfo) => {
+  const saveHistory = (data: ipInfoDetail) => {
     const updated = [data, ...history.filter((h) => h.ip !== data.ip)];
     setHistory(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
