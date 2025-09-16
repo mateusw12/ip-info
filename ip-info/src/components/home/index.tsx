@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, Input, Button, Table, Typography, message } from "antd";
 import { SearchOutlined, DeleteOutlined } from "@ant-design/icons";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 
 const MapWithMarker = dynamic(() => import("./../map"), { ssr: false });
 
@@ -66,9 +67,11 @@ export const SearchIP: React.FC = () => {
       render: (country: string) =>
         country ? (
           <span>
-            <img
+            <Image
               src={`https://flagcdn.com/24x18/${country.toLowerCase()}.png`}
               alt={country}
+              width={24}
+              height={18}
               style={{ marginRight: 6 }}
             />
             {country}
