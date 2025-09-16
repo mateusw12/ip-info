@@ -1,37 +1,32 @@
 import React, { useState, useEffect } from "react";
-import {
-  Card,
-  Input,
-  Button,
-  Space,
-  List,
-  Typography,
-  message,
-} from "antd";
-import {
-  SearchOutlined,
-  DeleteOutlined,
-} from "@ant-design/icons";
+import { Card, Input, Button, Table, Typography, message } from "antd";
+import { SearchOutlined, DeleteOutlined } from "@ant-design/icons";
+import dynamic from "next/dynamic";
 
-const { Title, Text } = Typography;
+const MapWithMarker = dynamic(() => import("./../map"), { ssr: false });
 
+const { Title } = Typography;
 const STORAGE_KEY = "ipinfo_ip_history_v1";
 
 interface IpInfo {
   ip: string;
   city?: string;
   region?: string;
+  country?: string;
+  loc?: string;
+  org?: string;
+  postal?: string;
+  timezone?: string;
 }
 
 export const SearchIP: React.FC = () => {
   const [ip, setIp] = useState("");
   const [history, setHistory] = useState<IpInfo[]>([]);
 
+  // Carrega histórico
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      setHistory(JSON.parse(saved));
-    }
+    if (saved) setHistory(JSON.parse(saved));
   }, []);
 
   const saveHistory = (data: IpInfo) => {
@@ -40,12 +35,11 @@ export const SearchIP: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
-  const handleSearch = async () => {
-    if (!ip) return;
+  const fetchIp = async (queryIp?: string) => {
     try {
-      const res = await fetch(`/api/ipinfo?ip=${ip}`);
+      const res = await fetch(`/api/ipInfo${queryIp ? "?ip=" + queryIp : ""}`);
       const data = await res.json();
-      saveHistory({ ip: data.ip, city: data.city, region: data.region });
+      saveHistory(data);
       message.success("IP buscado com sucesso!");
       setIp("");
     } catch {
@@ -53,52 +47,75 @@ export const SearchIP: React.FC = () => {
     }
   };
 
-  const handleMyIp = async () => {
-    try {
-      const res = await fetch(`/api/ipInfo`);
-      const data = await res.json();
-      saveHistory({ ip: data.ip, city: data.city, region: data.region });
-      message.success("Seu IP foi buscado!");
-    } catch {
-      message.error("Erro ao buscar seu IP.");
-    }
-  };
-
-  // Limpar histórico
+  const handleSearch = () => fetchIp(ip);
+  const handleMyIp = () => fetchIp();
   const clearHistory = () => {
     setHistory([]);
     localStorage.removeItem(STORAGE_KEY);
     message.info("Histórico limpo.");
   };
 
+  const columns = [
+    { title: "IP", dataIndex: "ip", key: "ip" },
+    { title: "Cidade", dataIndex: "city", key: "city" },
+    { title: "Região", dataIndex: "region", key: "region" },
+    {
+      title: "País",
+      dataIndex: "country",
+      key: "country",
+      render: (country: string) =>
+        country ? (
+          <span>
+            <img
+              src={`https://flagcdn.com/24x18/${country.toLowerCase()}.png`}
+              alt={country}
+              style={{ marginRight: 6 }}
+            />
+            {country}
+          </span>
+        ) : null,
+    },
+    { title: "Org", dataIndex: "org", key: "org" },
+    { title: "Postal", dataIndex: "postal", key: "postal" },
+    { title: "Timezone", dataIndex: "timezone", key: "timezone" },
+  ];
+
   return (
-    <Card style={{ maxWidth: 600, margin: "20px auto" }}>
+    <Card style={{ maxWidth: 900, margin: "40px auto", padding: 24 }}>
       <Title level={3}>Buscador de IP</Title>
-      <Space style={{ marginBottom: 16 }}>
+
+      <div
+        style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}
+      >
         <Input
-          placeholder="Digite um IP manualmente"
+          placeholder="Digite um IP (ex: 8.8.8.8)"
           value={ip}
           onChange={(e) => setIp(e.target.value)}
+          onPressEnter={handleSearch}
           style={{ width: 250 }}
         />
-        <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch} disabled>
+        <Button
+          type="primary"
+          icon={<SearchOutlined />}
+          onClick={handleSearch}
+          disabled
+        >
           Buscar IP
         </Button>
         <Button onClick={handleMyIp}>Meu IP</Button>
         <Button danger icon={<DeleteOutlined />} onClick={clearHistory}>
           Limpar
         </Button>
-      </Space>
+      </div>
 
-      <List
-        bordered
+      <Table
         dataSource={history}
-        renderItem={(item) => (
-          <List.Item>
-            <Text strong>{item.ip}</Text> — {item.city}, {item.region}
-          </List.Item>
-        )}
+        columns={columns}
+        rowKey="ip"
+        pagination={{ pageSize: 5 }}
       />
+
+      {history.length > 0 && <MapWithMarker loc={history[0].loc} />}
     </Card>
   );
 };
